@@ -612,29 +612,3 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     end if
     return false
 end function
- irPara("gear")
-            return true
-        else if tecla = "down" then
-            irPara(irAoTile())
-            return true
-        end if
-    else if f = "gear" then
-        if tecla = "down" then
-            if temBanner then irPara("banner") else irPara(irAoTile())
-            return true
-        end if
-        if tecla = "left" or tecla = "right" or tecla = "up" then return true
-    else if f = "listas" then
-        if tecla = "up" then
-            irPara(irAoTile())
-            return true
-        else if tecla = "right" then
-            irPara("sair")
-            return true
-        else if tecla = "left" or tecla = "down" then
-            return true
-        end if
-    else if f = "sair" then
-        if tecla = "up" then
-            irPara(irAoTile())
-          
