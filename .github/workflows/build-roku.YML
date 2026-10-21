@@ -1,0 +1,24 @@
+name: Gerar VLTV Play Roku
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Colocar as chaves (Secrets)
+        run: |
+          sed -i "s|__TMDB_API_KEY__|${{ secrets.TMDB_API_KEY }}|" config.json
+          sed -i "s|__VPS_APP_KEY__|${{ secrets.VPS_APP_KEY }}|" config.json
+      - name: Conferir o código (BrighterScript)
+        run: |
+          npm i -g brighterscript@0.69.7
+          bsc --rootDir . --createPackage false --stagingDir /tmp/stage --files "manifest" "source/**/*" "components/**/*" "images/**/*" "config.json" "i18n_en.json"
+      - name: Montar o zip (manifest na raiz)
+        run: zip -qr VLTV-Roku-app.zip manifest source components images config.json i18n_en.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VLTV-Roku-app
+          path: VLTV-Roku-app.zip
