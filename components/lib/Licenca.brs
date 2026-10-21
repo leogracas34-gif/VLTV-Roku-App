@@ -4,12 +4,23 @@
 '   - Lista de código de parceiro: sempre entra ("Ativo parceiro" no painel), sem teste nem vencimento.
 '   - Qualquer outra lista: precisa de licença valendo (teste de 7 dias contado desde a 1ª abertura, ou ativa).
 
+' O servidor só aceita device_id no formato "uid-" ou "mac-" + letras/números (8 a 64). Por isso "uid-roku" + ID da Roku sem traços.
 function licIdentidade() as Object
     id = regGet("dev_id")
+    if Left(id, 8) <> "uid-roku" then id = ""
     if id = "" then
         di = CreateObject("roDeviceInfo")
-        id = "roku-" + LCase(sv(di.GetChannelClientId()))
-        if id = "roku-" then id = "roku-" + LCase(sv(di.GetRIDA()))
+        base = sv(di.GetChannelClientId())
+        if base = "" then base = sv(di.GetRIDA())
+        rx = CreateObject("roRegex", "[^a-zA-Z0-9]", "")
+        base = LCase(rx.ReplaceAll(base, ""))
+        if Len(base) < 8 then
+            base = ""
+            for i = 1 to 20
+                base = base + Mid("abcdefghijklmnopqrstuvwxyz0123456789", Rnd(36), 1)
+            end for
+        end if
+        id = Left("uid-roku" + base, 64)
         regSet("dev_id", id)
     end if
     return { id: id, mac: "" }
