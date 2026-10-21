@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/components/lib/Util.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/Store.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/I18n.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/Ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <children>
+    <Rectangle id="fundo" translation="[0,0]" width="1920" height="1080" color="0x0A0A0CFF" />
+    <Group id="pilha" />
+    <Group id="carregando" visible="false">
+      <Rectangle translation="[0,0]" width="1920" height="1080" color="0x0A0A0CE6" />
+      <Label id="carregandoTxt" translation="[0,500]" width="1920" height="80" horizAlign="center" font="font:LargeSystemFont" color="0xF5F5F7FF" />
+    </Group>
+  </children>
+</component>
