@@ -9,7 +9,7 @@ function parceiroResolver(codigo as String) as Object
     limpo = limparCodigoParceiro(codigo)
     if limpo = "" then return { estado: "codigo_invalido" }
     url = sv(cfg().parceiro) + "?codigo=" + urlEnc(limpo)
-    r = httpSync(url, "GET", "", invalid, 8000)
+    r = httpSync(url, "GET", "", invalid, 6000)
     if r.status = 404 then return { estado: "codigo_invalido" }
     if r.status = 403 then return { estado: "suspenso" }
     if r.status = 429 then return { estado: "limite" }

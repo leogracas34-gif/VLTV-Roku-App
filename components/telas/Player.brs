@@ -439,3 +439,7 @@ sub aoEscolherLegenda(ev as Object)
         m.video.subtitleTrack = sv(m.trilhas[i - 1].TrackName)
     end if
 end sub
+
+sub focar()
+    m.top.setFocus(true)
+end sub

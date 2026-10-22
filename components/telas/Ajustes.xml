@@ -6,6 +6,7 @@
     <function name="iniciar" />
     <function name="retomar" />
     <function name="encerrar" />
+    <function name="focar" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/lib/Util.brs" />
   <script type="text/brightscript" uri="pkg:/components/lib/Http.brs" />

@@ -43,7 +43,7 @@ function licChamar(metodo as String, caminho as String, corpo as Dynamic, token 
         texto = FormatJson(corpo)
     end if
     if token <> "" then cab["Authorization"] = "Bearer " + token
-    r = httpSync(sv(cfg().licenca) + caminho, metodo, texto, cab, 9000)
+    r = httpSync(sv(cfg().licenca) + caminho, metodo, texto, cab, 6000)
     j = invalid
     if r.texto <> "" then j = ParseJson(r.texto)
     if j = invalid or not isAA(j) then j = {}
@@ -147,7 +147,7 @@ function licTextoCurto(e as Dynamic, ehParceiro as Boolean) as String
     if ehParceiro then return "Ativo"
     if e = invalid or not isAA(e) or sv(e.estado) = "" then return ""
     if e.estado = "active" then
-        if e.vitalicio then return "Vitalícia (sem vencimento)"
+        if sv(e.vitalicio) = "true" then return "Vitalícia (sem vencimento)"
         return "Ativa até " + dataBr(e.expira_em)
     end if
     dias = iv(e.dias)
@@ -161,16 +161,24 @@ function licAvisos(e as Dynamic, ehParceiro as Boolean, expPlano as Dynamic) as 
     lista = []
     limite = iv(cfg().avisoDias)
     if limite <= 0 then limite = 7
-    if e <> invalid and isAA(e) and not ehParceiro and not e.vitalicio and iv(e.expira_em) > 0 then
-        d = diasAte(e.expira_em)
-        if d <= limite and d >= 0 then
-            quando = "em " + Str(d).Trim() + " dias"
-            if d = 0 then quando = "hoje"
-            if d = 1 then quando = "amanhã"
-            if e.estado = "trial" then
-                lista.Push("Seu teste grátis do aplicativo termina " + quando)
-            else
-                lista.Push("A licença do aplicativo vence " + quando)
+    temLic = false
+    if e <> invalid then
+        if isAA(e) then temLic = true
+    end if
+    if temLic and not ehParceiro then
+        expira = iv(e.expira_em)
+        vitalicio = (sv(e.vitalicio) = "true")
+        if not vitalicio and expira > 0 then
+            d = diasAte(expira)
+            if d <= limite and d >= 0 then
+                quando = "em " + Str(d).Trim() + " dias"
+                if d = 0 then quando = "hoje"
+                if d = 1 then quando = "amanhã"
+                if sv(e.estado) = "trial" then
+                    lista.Push("Seu teste grátis do aplicativo termina " + quando)
+                else
+                    lista.Push("A licença do aplicativo vence " + quando)
+                end if
             end if
         end if
     end if

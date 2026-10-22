@@ -12,12 +12,18 @@ sub init()
     idioma = regGet("idioma")
     if idioma = "pt-BR" then g.idioma = "pt-BR" else g.idioma = "en"   ' padrão: inglês (igual ao app da LG 1.2.6)
     carregarI18n()
-    ' Vigia: em qualquer tela, confere a cada 30 s se a TV foi bloqueada/revogada ou se o código de parceiro caiu.
+    ' Vigia: em qualquer tela, confere a cada 2 min se a TV foi bloqueada/revogada ou se o código de parceiro caiu.
     m.vigia = CreateObject("roSGNode", "Timer")
     m.vigia.repeat = true
-    m.vigia.duration = 30
+    m.vigia.duration = 120
     m.vigia.observeField("fire", "vigiar")
     m.vigia.control = "start"
+    ' Vigia do foco: se por qualquer motivo o controle remoto "soltar" a tela, devolve o foco a ela.
+    m.vigiaFoco = CreateObject("roSGNode", "Timer")
+    m.vigiaFoco.repeat = true
+    m.vigiaFoco.duration = 1
+    m.vigiaFoco.observeField("fire", "garantirFoco")
+    m.vigiaFoco.control = "start"
     partida()
 end sub
 
@@ -29,41 +35,28 @@ sub partida()
         return
     end if
     mostrarCarregando("Entrando...")
-    chamar("AuthTask", "licenca", {}, "partidaLicenca")
+    autenticarPar(ctxDaSessao(s), partidaEntrar)
 end sub
 
-sub partidaLicenca(ev as Object)
-    chamarFim(ev)
-    m.global.lic = ev.getData()
-    s = sessaoLer()
-    if s = invalid then
-        esconderCarregando()
-        abrirLogin("")
-        return
-    end if
-    ctx = { modo: s.modo, user: sv(s.user), pass: sv(s.pass), codigo: sv(s.codigo), servidor: sv(s.dns), m3u: sv(s.m3u), dnsPreferido: sv(s.dns) }
-    chamar("AuthTask", "entrar", ctx, "partidaEntrar")
-end sub
+function ctxDaSessao(s as Object) as Object
+    return { modo: s.modo, user: sv(s.user), pass: sv(s.pass), codigo: sv(s.codigo), servidor: sv(s.dns), m3u: sv(s.m3u), dnsPreferido: sv(s.dns) }
+end function
 
-sub partidaEntrar(ev as Object)
-    chamarFim(ev)
-    r = ev.getData()
+sub partidaEntrar(r as Object)
     esconderCarregando()
     estado = sv(r.estado)
     s = sessaoLer()
     if estado = "ok" and m.trocando = true then
-        ' Troca de lista: avisa a VPS se a nova lista é de parceiro (TV ativa) ou não.
+        ' Troca de lista: entra e avisa a VPS (por trás) se a nova lista é de parceiro (TV ativa) ou não.
         m.trocando = false
-        m.resultadoTroca = r
         codigo = ""
         if s <> invalid and s.modo = "parceiro" then codigo = UCase(sv(s.codigo))
-        mostrarCarregando("Entrando...")
-        chamar("AuthTask", "informar", { codigo: codigo }, "aoInformadoTroca")
+        entrou(r, codigo)
     else if estado = "ok" or estado = "erro" or estado = "rede" then
         ' Sem rede também abre: o que já está guardado na TV continua aparecendo.
-        entrou(r)
+        entrou(r, invalid)
     else if estado = "sem_licenca" then
-        m.global.lic = r.lic
+        if r.lic <> invalid then m.global.lic = r.lic
         abrirAtivacao()
     else if (estado = "codigo_invalido" or estado = "suspenso") and s <> invalid and s.modo = "parceiro" then
         ' Código de parceiro apagado ou suspenso: a TV deixa de ser "parceiro". Sem licença própria, bloqueia e pede a ativação.
@@ -106,7 +99,7 @@ sub aoParceiroCaiu2(ev as Object)
 end sub
 
 ' Login deu certo (ou app reaberto): guarda dados da conta e abre a Home.
-sub entrou(r as Object)
+sub entrou(r as Object, informar as Dynamic)
     s = sessaoLer()
     if s = invalid then
         abrirLogin("")
@@ -117,6 +110,7 @@ sub entrou(r as Object)
         s.dns = sv(r.base)
         sessaoSalvar(s)
     end if
+    if r.lic <> invalid then g.lic = r.lic
     if r.info <> invalid then g.info = r.info
     if r.nome <> invalid and sv(r.nome) <> "" then g.parceiroNome = sv(r.nome)
     if s.modo <> "parceiro" then g.parceiroNome = ""
@@ -125,6 +119,14 @@ sub entrou(r as Object)
     limparPilha()
     abrir("Home", {})
     chamar("AuthTask", "visual", {}, "visualChegou")
+    ' Aviso à VPS por trás (não deixa a Home esperando).
+    if informar <> invalid then
+        if Type(informar) = "String" or Type(informar) = "roString" then chamar("AuthTask", "informar", { codigo: informar }, "aoInformouFundo")
+    end if
+end sub
+
+sub aoInformouFundo(ev as Object)
+    chamarFim(ev)
 end sub
 
 sub visualChegou(ev as Object)
@@ -189,7 +191,7 @@ sub aoAcao(ev as Object)
     else if tipo = "voltar" then
         voltar()
     else if tipo = "entrou" then
-        entrou(a)
+        entrou(a, a.informar)
     else if tipo = "login" then
         abrirLogin(sv(a.msg))
     else if tipo = "ativacao" then
@@ -211,12 +213,6 @@ sub aoAcao(ev as Object)
     end if
 end sub
 
-sub aoInformadoTroca(ev as Object)
-    chamarFim(ev)
-    esconderCarregando()
-    entrou(m.resultadoTroca)
-end sub
-
 sub partidaEntrarLista()
     m.trocando = true
     s = sessaoLer()
@@ -225,8 +221,7 @@ sub partidaEntrarLista()
         abrirLogin("")
         return
     end if
-    ctx = { modo: s.modo, user: sv(s.user), pass: sv(s.pass), codigo: sv(s.codigo), servidor: sv(s.dns), m3u: sv(s.m3u), dnsPreferido: sv(s.dns) }
-    chamar("AuthTask", "entrar", ctx, "partidaEntrar")
+    autenticarPar(ctxDaSessao(s), partidaEntrar)
 end sub
 
 sub mostrarCarregando(texto as String)
@@ -291,4 +286,19 @@ sub aoVigia(ev as Object)
         if estado = "blocked" then msg = "Esta TV foi bloqueada. Fale com o suporte."
         abrir("Ativacao", { msg: msg })
     end if
+end sub
+
+' ── Vigia do foco ───────────────────────────────────────────────────
+' Roda a cada 1 s: se a tela de cima não está com o foco (e não há janela de diálogo aberta), devolve o foco.
+sub garantirFoco()
+    d = m.top.dialog
+    if d <> invalid then
+        if d.isInFocusChain() then return
+    end if
+    t = topo()
+    if t = invalid then return
+    if not t.visible then return
+    if t.isInFocusChain() then return
+    t.callFunc("focar")
+    if not t.isInFocusChain() then t.setFocus(true)
 end sub

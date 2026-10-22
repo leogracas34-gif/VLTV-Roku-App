@@ -181,3 +181,7 @@ sub respostaDigitada(texto as String)
     parentalDefinirPergunta(m.perguntaIdx, texto)
     uiAviso("Pronto", "Pergunta secreta salva.")
 end sub
+
+sub focar()
+    m.lista.setFocus(true)
+end sub

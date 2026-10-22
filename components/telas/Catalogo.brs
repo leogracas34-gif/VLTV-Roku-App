@@ -257,3 +257,9 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     end if
     return false
 end function
+
+sub focar()
+    if m.grade.visible and m.grade.isInFocusChain() then return
+    if m.listaCats.isInFocusChain() then return
+    m.listaCats.setFocus(true)
+end sub

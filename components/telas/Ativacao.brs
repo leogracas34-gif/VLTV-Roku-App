@@ -74,3 +74,7 @@ end sub
 function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     return false
 end function
+
+sub focar()
+    m.bt.setFocus(true)
+end sub

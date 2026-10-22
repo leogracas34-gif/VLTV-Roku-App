@@ -177,12 +177,10 @@ sub entrar()
     m.status.color = uiSuave()
     m.status.text = tx("Entrando...")
     uiAcao("carregando", { ligado: true, texto: "Entrando..." })
-    chamar("AuthTask", "entrar", ctx, "aoResultado")
+    autenticarPar(ctx, aoResultado)
 end sub
 
-sub aoResultado(ev as Object)
-    chamarFim(ev)
-    r = ev.getData()
+sub aoResultado(r as Object)
     m.ocupado = false
     estado = sv(r.estado)
     m.status.color = uiErro()
@@ -192,7 +190,7 @@ sub aoResultado(ev as Object)
     end if
     uiAcao("carregando", { ligado: false })
     if estado = "sem_licenca" then
-        m.global.lic = r.lic
+        if r.lic <> invalid then m.global.lic = r.lic
         regSet("pendente", "1")   ' depois de ativar, volta aqui para abrir ESTA lista
         uiAcao("ativacao", invalid)
         return
@@ -242,16 +240,15 @@ sub guardarSessao(r as Object)
     regSet("pendente", "")
     sessaoSalvar(d)
     listaRegistrar(d)
-    ' Avisa a VPS: código de parceiro = TV ativa; qualquer outra lista = sem parceiro.
-    m.resultadoLogin = r
+    ' Entra na hora. O aviso à VPS (código de parceiro = TV ativa; outra lista = sem parceiro) vai por trás.
     codigo = ""
     if c.modo = "parceiro" then codigo = UCase(c.codigo)
-    chamar("AuthTask", "informar", { codigo: codigo }, "aoInformado")
+    if r.lic <> invalid then m.global.lic = r.lic
+    uiAcao("carregando", { ligado: false })
+    uiAcao("entrou", { info: r.info, base: sv(r.base), nome: sv(r.nome), informar: codigo })
 end sub
 
-sub aoInformado(ev as Object)
-    chamarFim(ev)
-    uiAcao("carregando", { ligado: false })
-    r = m.resultadoLogin
-    uiAcao("entrou", { info: r.info, base: sv(r.base), nome: sv(r.nome) })
+sub focar()
+    if m.ocupado = true then return
+    m.campos.setFocus(true)
 end sub

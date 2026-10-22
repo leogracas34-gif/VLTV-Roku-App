@@ -213,3 +213,66 @@ function uiNota(v as Dynamic) as String
     if n <= 0 then return ""
     return Str(Int(n * 10 + 0.5) / 10).Trim()
 end function
+
+' ── Entrar numa lista: licença e login ao mesmo tempo ────────────────
+' Antes eram 3 chamadas em fila (licença, login, aviso à VPS). Agora a licença e o login rodam juntos
+' e o aviso à VPS vai depois, por trás. cb(r) recebe { estado, base, info, nome, painel, teste, lic }.
+sub autenticarPar(ctx as Object, cb as Function)
+    m.parCb = cb
+    m.parLogin = invalid
+    m.parLic = invalid
+    m.parPrecisaLic = (sv(ctx.modo) <> "parceiro")
+    t = chamar("AuthTask", "login", ctx, "aoParLogin")
+    m.parIdLogin = t.id
+    m.parIdLic = ""
+    if m.parPrecisaLic then
+        t2 = chamar("AuthTask", "licnova", {}, "aoParLic")
+        m.parIdLic = t2.id
+    end if
+end sub
+
+sub aoParLogin(ev as Object)
+    id = ev.getRoSGNode().id
+    chamarFim(ev)
+    if id <> m.parIdLogin then return   ' resposta de uma tentativa antiga
+    m.parLogin = ev.getData()
+    parTentar()
+end sub
+
+sub aoParLic(ev as Object)
+    id = ev.getRoSGNode().id
+    chamarFim(ev)
+    if id <> m.parIdLic then return
+    m.parLic = ev.getData()
+    parTentar()
+end sub
+
+function uiLiberaComum(lic as Dynamic) as Boolean
+    if lic = invalid then return false
+    if not isAA(lic) then return false
+    return sv(lic.estado) = "active" or sv(lic.estado) = "trial"
+end function
+
+sub parTentar()
+    if m.parLogin = invalid then return
+    if m.parPrecisaLic and m.parLic = invalid then return
+    r = m.parLogin
+    cb = m.parCb
+    m.parCb = invalid
+    if cb = invalid then return
+    if m.parPrecisaLic then
+        if uiLiberaComum(m.parLic) then
+            r.lic = m.parLic
+        else
+            ' Sem licença valendo: não entra. Se havia uma lista de parceiro em uso, devolve o aviso dela à VPS.
+            antigo = regGet("lic_parc")
+            if antigo <> "" then chamar("AuthTask", "informar", { codigo: antigo }, "aoParInformou")
+            r = { estado: "sem_licenca", lic: m.parLic }
+        end if
+    end if
+    cb(r)
+end sub
+
+sub aoParInformou(ev as Object)
+    chamarFim(ev)
+end sub

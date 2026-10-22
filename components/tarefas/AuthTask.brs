@@ -1,5 +1,7 @@
 ' VLTV Play - Roku | Tarefa de login e licença.
 '   op "entrar":   ctx { modo, user, pass, codigo, servidor, m3u, dnsPreferido } -> { estado, base, info, teste, painel, nome, lic }
+'   op "login":    só o login no painel (autenticarLista)
+'   op "licnova":  licença para lista comum (licVerificar(""))
 '   op "licenca":  confere a licença da TV -> { estado, codigo, dias, pagar_url, ... }
 '   op "informar": ctx { codigo } avisa a VPS qual lista de parceiro está em uso -> { ok }
 '   op "visual":   campanha e cores remotas (/lg/config)
@@ -13,6 +15,12 @@ sub executar()
     if ctx = invalid then ctx = {}
     if op = "entrar" then
         m.top.result = autenticar(ctx)
+    else if op = "login" then
+        ' Só o login no painel (a licença da TV é conferida em outra tarefa, ao mesmo tempo).
+        m.top.result = autenticarLista(ctx)
+    else if op = "licnova" then
+        ' Licença para uma lista que NÃO é de parceiro (avisa a VPS que não há código de parceiro).
+        m.top.result = licVerificar("")
     else if op = "licenca" then
         m.top.result = licVerificar()
     else if op = "informar" then

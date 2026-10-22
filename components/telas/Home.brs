@@ -33,10 +33,15 @@ sub iniciar()
     m.giro = uiNo(m.top, "Timer", { repeat: true, duration: 8 })
     m.giro.observeField("fire", "girar")
 
-    aplicarVisual()
-    tique()
     aplicarFoco()
     m.top.setFocus(true)
+    ' O topo (hora, data, avisos) nunca pode impedir a Home de funcionar: se algo falhar aqui, só registra.
+    try
+        aplicarVisual()
+        tique()
+    catch e
+        print "VLTV Home: erro no topo: "; e.message
+    end try
     t = chamar("ApiTask", "banner", { modo: "cache" }, "aoBannerCache")
 end sub
 
@@ -204,12 +209,21 @@ sub tique()
     if mes < 10 then txt = txt + "0"
     txt = txt + Str(mes).Trim() + "/" + Str(d.GetYear()).Trim()
     m.data.text = txt
-    avisos()
+    try
+        avisos()
+    catch e
+        print "VLTV Home: erro nos avisos: "; e.message
+    end try
 end sub
 
 sub avisos()
     ' Aviso de vencimento/teste: texto laranja embaixo da data
-    textos = licAvisos(m.global.lic, m.global.ehParceiro, iv(m.global.info.exp_date))
+    exp = 0
+    inf = m.global.info
+    if inf <> invalid then
+        if isAA(inf) then exp = iv(inf.exp_date)
+    end if
+    textos = licAvisos(m.global.lic, m.global.ehParceiro, exp)
     linhas = 0
     if textos.Count() > 0 then
         t = ""
@@ -310,23 +324,42 @@ sub usarSlides(recebidos as Object)
     if m.pos >= lista.Count() then m.pos = 0
     mostrarSlide()
     m.giro.control = "start"
-    ' logo e imagem de fundo do TMDB de cada destaque (guardados na TV depois da primeira vez)
+    ' logo e imagem de fundo do TMDB de cada destaque (guardados na TV depois da primeira vez).
+    ' Um destaque por vez: o atual primeiro, depois os outros (não disputa a rede com o resto do app).
     m.tmdbMap = {}
+    if m.tmdbGer = invalid then m.tmdbGer = 0
+    m.tmdbGer = m.tmdbGer + 1
+    m.tmdbOrdem = []
+    m.tmdbOrdem.Push(m.pos)
     for i = 0 to lista.Count() - 1
-        s = lista[i]
-        id = sv(s.id)
-        if s.daVps = true then id = "vps" + id
-        t = chamar("TmdbTask", "detalhe", { tipo: sv(s.tipo), id: id, nome: sv(s.nomeBruto) }, "aoTmdbSlide")
-        m.tmdbMap[t.id] = i
+        if i <> m.pos then m.tmdbOrdem.Push(i)
     end for
+    m.tmdbPasso = 0
+    pedirTmdbSlide()
+end sub
+
+sub pedirTmdbSlide()
+    if m.tmdbPasso >= m.tmdbOrdem.Count() then return
+    i = m.tmdbOrdem[m.tmdbPasso]
+    if i >= m.slides.Count() then return
+    s = m.slides[i]
+    id = sv(s.id)
+    if s.daVps = true then id = "vps" + id
+    t = chamar("TmdbTask", "detalhe", { tipo: sv(s.tipo), id: id, nome: sv(s.nomeBruto) }, "aoTmdbSlide")
+    m.tmdbMap[t.id] = { i: i, ger: m.tmdbGer }
 end sub
 
 sub aoTmdbSlide(ev as Object)
     n = ev.getRoSGNode()
     chamarFim(ev)
     r = ev.getData()
-    i = m.tmdbMap[n.id]
-    if i = invalid then return
+    info = m.tmdbMap[n.id]
+    if info = invalid then return
+    m.tmdbMap.Delete(n.id)
+    if info.ger <> m.tmdbGer then return   ' veio de uma lista antiga de destaques
+    m.tmdbPasso = m.tmdbPasso + 1
+    pedirTmdbSlide()
+    i = info.i
     if r.ok <> true then return
     if i >= m.slides.Count() then return
     s = m.slides[i]
@@ -612,3 +645,8 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     end if
     return false
 end function
+
+sub focar()
+    aplicarFoco()
+    m.top.setFocus(true)
+end sub

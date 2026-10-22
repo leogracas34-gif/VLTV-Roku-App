@@ -66,3 +66,7 @@ sub aoEscolha(ev as Object)
         end if
     end if
 end sub
+
+sub focar()
+    m.lista.setFocus(true)
+end sub

@@ -242,3 +242,12 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     end if
     return false
 end function
+
+sub focar()
+    if m.listaCanais.isInFocusChain() or m.listaCats.isInFocusChain() then return
+    if m.canais.Count() > 0 then
+        m.listaCanais.setFocus(true)
+    else
+        m.listaCats.setFocus(true)
+    end if
+end sub

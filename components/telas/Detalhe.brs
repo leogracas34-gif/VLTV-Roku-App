@@ -362,3 +362,14 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     end if
     return false
 end function
+
+sub focar()
+    if m.bt.isInFocusChain() then return
+    if m.listaTemp <> invalid then
+        if m.listaTemp.isInFocusChain() then return
+    end if
+    if m.listaEps <> invalid then
+        if m.listaEps.isInFocusChain() then return
+    end if
+    m.bt.setFocus(true)
+end sub
