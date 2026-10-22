@@ -58,7 +58,7 @@ sub aoItem(ev as Object)
     else if i = 4 then
         uiConfirmar("Sair da conta", "Deseja sair desta conta?", "Sair", "Cancelar", sairConta)
     else
-        uiAviso("Sobre", "VLTV Play " + sv(cfg().versao) + Chr(10) + tx("Suporte") + ": " + sv(cfg().suporte))
+        mostrarSobre()
     end if
 end sub
 
@@ -69,6 +69,39 @@ end sub
 
 sub sairConta()
     uiAcao("sair", invalid)
+end sub
+
+' Código curto desta TV (o mesmo que a VPS/painel mostra). "" se a TV ainda não se apresentou à VPS.
+function codigoTv() as String
+    cod = ""
+    if m.global.lic <> invalid then
+        if isAA(m.global.lic) then cod = sv(m.global.lic.codigo)
+    end if
+    if cod = "" then
+        cLic = licCache()
+        if cLic <> invalid then
+            if isAA(cLic.e) then cod = sv(cLic.e.codigo)
+        end if
+    end if
+    return cod
+end function
+
+' Sobre: versão, suporte, código da TV e dispositivo (para conferir no painel qual TV está sendo ativada).
+sub mostrarSobre()
+    cod = codigoTv()
+    if cod = "" then
+        ' Ainda sem código: pede à VPS agora (em segundo plano) e avisa para abrir de novo.
+        cod = tx("buscando na VPS... abra o Sobre de novo em alguns segundos")
+        chamar("AuthTask", "licenca", {}, "aoCodigoSobre")
+    end if
+    txt = "VLTV Play " + sv(cfg().versao) + Chr(10) + tx("Suporte") + ": " + sv(cfg().suporte)
+    txt = txt + Chr(10) + tx("Código da TV") + ": " + cod
+    txt = txt + Chr(10) + tx("Dispositivo") + ": " + licIdentidade().id
+    uiAviso("Sobre", txt)
+end sub
+
+sub aoCodigoSobre(ev as Object)
+    chamarFim(ev)
 end sub
 
 sub mostrarConta()
@@ -95,6 +128,8 @@ sub mostrarConta()
     textoLic = licTextoCurto(m.global.lic, m.global.ehParceiro)
     if textoLic = "" then textoLic = "Não verificada (sem resposta do servidor)"
     linhas.Push(tx("Licença do aplicativo") + ": " + tx(textoLic))
+    codTv = codigoTv()
+    if codTv <> "" then linhas.Push(tx("Código da TV") + ": " + codTv)
     linhas.Push(tx("Dispositivo") + ": " + licIdentidade().id)
     uiAviso("Informações da conta", linhas.Join(Chr(10)))
 end sub

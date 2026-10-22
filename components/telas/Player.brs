@@ -168,6 +168,9 @@ end sub
 ' ── Estado do vídeo ─────────────────────────────────────────────────
 sub aoEstado(ev as Object)
     est = ev.getData()
+    ' Alguns modelos de Roku passam o foco para o nó de vídeo quando a reprodução começa: devolve para o Player,
+    ' senão o OK, o Voltar e as setas deixam de chegar nas teclas abaixo.
+    if not m.menuAberto and not m.top.isInFocusChain() then m.top.setFocus(true)
     if est = "playing" then
         m.carregando.visible = false
         m.aviso.visible = false
@@ -300,7 +303,11 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     if not pressionou then return false
     if m.menuAberto then return false
     if tecla = "back" then
-        return false
+        ' Voltar: guarda onde parou, para o vídeo e fecha o player (sem depender de outra tela tratar a tecla).
+        salvar()
+        m.video.control = "stop"
+        sair()
+        return true
     else if tecla = "OK" or tecla = "play" then
         if m.tipo = "live" then
             mostrarBarra()
@@ -317,10 +324,10 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     else if tecla = "right" then
         pular(10)
         return true
-    else if tecla = "rewind" then
+    else if tecla = "rewind" or tecla = "rev" then
         pular(-60)
         return true
-    else if tecla = "fastforward" then
+    else if tecla = "fastforward" or tecla = "fwd" then
         pular(60)
         return true
     else if tecla = "replay" then
