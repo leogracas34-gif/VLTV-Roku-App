@@ -119,6 +119,8 @@ sub entrou(r as Object, informar as Dynamic)
     limparPilha()
     abrir("Home", {})
     chamar("AuthTask", "visual", {}, "visualChegou")
+    ' Garante que a VPS conhece esta TV (e reenvia avisos pendentes) a cada abertura, com novas tentativas.
+    chamar("AuthTask", "pendente", {}, "aoInformouFundo")
     ' Aviso à VPS por trás (não deixa a Home esperando).
     if informar <> invalid then
         if Type(informar) = "String" or Type(informar) = "roString" then chamar("AuthTask", "informar", { codigo: informar }, "aoInformouFundo")
