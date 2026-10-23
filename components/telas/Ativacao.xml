@@ -12,5 +12,6 @@
   <script type="text/brightscript" uri="pkg:/components/lib/Store.brs" />
   <script type="text/brightscript" uri="pkg:/components/lib/I18n.brs" />
   <script type="text/brightscript" uri="pkg:/components/lib/Ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/Vk.brs" />
   <script type="text/brightscript" uri="pkg:/components/telas/Ativacao.brs" />
 </component>

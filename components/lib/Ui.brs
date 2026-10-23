@@ -126,79 +126,74 @@ sub marcarPedido(chave as String, t as Object)
     m.ultimo[chave] = t.id
 end sub
 
-' ── Diálogos ────────────────────────────────────────────────────────
-sub uiAviso(titulo as String, mensagem as String)
-    d = CreateObject("roSGNode", "Dialog")
-    d.title = tx(titulo)
-    d.message = [tx(mensagem)]
-    d.buttons = [tx("OK")]
-    d.observeFieldScoped("buttonSelected", "uiFecharDialogo")
-    m.top.getScene().dialog = d
+' ── Janelas por cima da tela (visual do app) ─────────────────────────
+' Abre a janela "nome" dentro da tela atual. Quando ela termina, chama m.janelaCb(resultado) e devolve o foco à tela.
+sub uiJanela(nome as String, args as Object, cb as Dynamic)
+    j = CreateObject("roSGNode", nome)
+    j.args = args
+    m.janelaCb = cb
+    m.janelaNo = j
+    j.observeFieldScoped("resultado", "uiJanelaFim")
+    m.top.appendChild(j)
+    j.callFunc("iniciar")
 end sub
 
-sub uiFecharDialogo(ev as Object)
-    d = ev.getRoSGNode()
-    d.close = true
+sub uiJanelaFim(ev as Object)
+    r = ev.getData()
+    j = m.janelaNo
+    cb = m.janelaCb
+    m.janelaCb = invalid
+    m.janelaNo = invalid
+    if j <> invalid then m.top.removeChild(j)
+    m.top.callFunc("focar")
+    if cb <> invalid then cb(r)
 end sub
 
-' Teclado. Chama a função "cb" com o texto .
+function uiJanelaAberta() as Boolean
+    return m.janelaNo <> invalid
+end function
+
+sub uiAviso(titulo as String, mensagemTxt as String)
+    uiJanela("JConfirma", { titulo: titulo, msg: mensagemTxt, botoes: ["OK"], perigo: -1 }, invalid)
+end sub
+
+' Teclado na tela. cb(texto) é chamado só se a pessoa confirmar.
 sub uiTeclado(titulo as String, dica as String, atual as String, senha as Boolean, cb as Function)
-    d = CreateObject("roSGNode", "KeyboardDialog")
-    d.title = tx(titulo)
-    d.message = [tx(dica)]
-    d.text = atual
-    d.buttons = [tx("OK"), tx("Cancelar")]
-    if senha then d.keyboard.textEditBox.secureMode = true
     m.tecladoCb = cb
-    d.observeFieldScoped("buttonSelected", "uiTecladoBotao")
-    m.top.getScene().dialog = d
+    uiJanela("JTeclado", { titulo: titulo, dica: dica, atual: atual, senha: senha }, uiTecladoFim)
 end sub
 
-sub uiTecladoBotao(ev as Object)
-    d = ev.getRoSGNode()
-    i = d.buttonSelected
-    texto = d.text
-    d.close = true
-    if i = 0 then
-        m.tecladoCb(texto)
+sub uiTecladoFim(r as Object)
+    if r.ok = true then m.tecladoCb(sv(r.texto))
+end sub
+
+' Pede a senha dos pais. cbOk() é chamado se acertar (ou se recuperar a senha).
+sub uiSenha(titulo as String, sub1 as String, cbOk as Function)
+    m.senhaCb = cbOk
+    uiJanela("JPin", { modo: "pedir", titulo: titulo, sub: sub1 }, uiSenhaFim)
+end sub
+
+' Criar (ou trocar) a senha e a pergunta secreta. cbFim() é chamado ao terminar.
+sub uiCriarSenha(cbFim as Function)
+    m.senhaCb = cbFim
+    uiJanela("JPin", { modo: "criar" }, uiSenhaFim)
+end sub
+
+sub uiSenhaFim(r as Object)
+    if r.ok = true then
+        m.global.parentalLiberado = true
+        m.senhaCb()
     end if
 end sub
 
-' Senha de 4 dígitos. cb(pin as String) é chamado quando a pessoa confirma.
-sub uiPin(titulo as String, cb as Function)
-    m.pinCb = cb
-    d = CreateObject("roSGNode", "PinDialog")
-    d.title = tx(titulo)
-    d.pinPad.pinLength = 4
-    d.buttons = [tx("OK"), tx("Cancelar")]
-    d.observeFieldScoped("buttonSelected", "uiPinBotao")
-    m.top.getScene().dialog = d
-end sub
-
-sub uiPinBotao(ev as Object)
-    d = ev.getRoSGNode()
-    i = d.buttonSelected
-    pin = d.pin
-    d.close = true
-    if i = 0 then m.pinCb(pin)
-end sub
-
-' Pergunta Sim/Não. cb() é chamado no primeiro botão.
-sub uiConfirmar(titulo as String, mensagem as String, sim as String, nao as String, cb as Function)
+' Pergunta Sim/Não. cb() é chamado no botão "sim" (o botão "não" vem primeiro, como na LG).
+sub uiConfirmar(titulo as String, mensagemTxt as String, sim as String, nao as String, cb as Function)
     m.confCb = cb
-    d = CreateObject("roSGNode", "Dialog")
-    d.title = tx(titulo)
-    d.message = [tx(mensagem)]
-    d.buttons = [tx(sim), tx(nao)]
-    d.observeFieldScoped("buttonSelected", "uiConfirmarBotao")
-    m.top.getScene().dialog = d
+    uiJanela("JConfirma", { titulo: titulo, msg: mensagemTxt, botoes: [nao, sim], perigo: 1, foco: 0 }, uiConfirmarFim)
 end sub
 
-sub uiConfirmarBotao(ev as Object)
-    d = ev.getRoSGNode()
-    i = d.buttonSelected
-    d.close = true
-    if i = 0 then m.confCb()
+sub uiConfirmarFim(r as Object)
+    if r.indice = 1 then m.confCb()
 end sub
 
 sub uiAcao(tipo as String, extra as Object)
@@ -275,4 +270,14 @@ end sub
 
 sub aoParInformou(ev as Object)
     chamarFim(ev)
+end sub
+
+' Janela de escolha. cb(indice) só é chamado se a pessoa escolher algo.
+sub uiEscolher(titulo as String, itens as Object, atual as Integer, cb as Function)
+    m.escolherCb = cb
+    uiJanela("JLista", { titulo: titulo, itens: itens, atual: atual }, uiEscolherFim)
+end sub
+
+sub uiEscolherFim(r as Object)
+    if r.indice <> invalid and r.indice >= 0 then m.escolherCb(r.indice)
 end sub

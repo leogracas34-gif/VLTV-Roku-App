@@ -13,28 +13,41 @@ sub iniciar()
     m.tent = 0
     m.fim = false
     m.sairFeito = false
-    m.menuAberto = false
 
-    uiRet(m.top, 0, 0, 1920, 1080, "0x000000FF")
+    vkRet(m.top, 0, 0, 1920, 1080, "0x000000FF")
     m.video = uiNo(m.top, "Video", { translation: [0, 0], width: 1920, height: 1080, enableUI: false, enableTrickPlay: false })
     m.video.observeField("state", "aoEstado")
 
-    ' barra de informações
+    ' controles (iguais aos da LG): degradê, título, barra de 18px e tempos
     m.barra = uiNo(m.top, "Group", { visible: false })
-    uiRet(m.barra, 0, 840, 1920, 240, "0x000000C8")
-    m.titulo = uiNo(m.barra, "Label", { translation: [80, 870], width: 1500, font: "font:LargeBoldSystemFont", color: uiTexto() })
-    m.sub1 = uiNo(m.barra, "Label", { translation: [80, 935], width: 1760, font: "font:SmallSystemFont", color: uiSuave() })
-    uiRet(m.barra, 80, 1000, 1760, 10, "0x3A3A40FF")
-    m.progresso = uiRet(m.barra, 80, 1000, 1, 10, uiDestaque())
-    m.tempos = uiNo(m.barra, "Label", { translation: [80, 1020], width: 1760, font: "font:SmallSystemFont", color: uiSuave() })
+    uiNo(m.barra, "Poster", { translation: [0, 720], width: 1920, height: 360, uri: "pkg:/images/ui/grad_ctrl.png", loadDisplayMode: "scaleToFill" })
+    m.titulo = vkTxt(m.barra, 100, 860, 1720, 51, "", 44, true, cBranco(), "left")
+    m.sub1 = vkTxt(m.barra, 100, 914, 1720, 36, "", 28, false, cSuave(), "left")
+    m.barraBg = vkNine(m.barra, 100, 958, 1720, 18, "f9")
+    m.barraBg.blendColor = "0xFFFFFF40"
+    m.progresso = vkRet(m.barra, 100, 958, 1, 18, cClaro())
+    m.tTempo = vkTxt(m.barra, 100, 992, 400, 32, "", 28, false, cSuave(), "left")
+    m.tEstado = vkTxt(m.barra, 700, 992, 520, 32, "", 28, false, cSuave(), "center")
+    m.tDur = vkTxt(m.barra, 1420, 992, 400, 32, "", 28, false, cSuave(), "right")
 
-    m.aviso = uiNo(m.top, "Label", { translation: [160, 380], width: 1600, height: 240, horizAlign: "center", wrap: true, font: "font:LargeSystemFont", color: uiTexto(), visible: false })
-    m.carregando = uiNo(m.top, "Label", { translation: [0, 500], width: 1920, horizAlign: "center", font: "font:LargeSystemFont", color: uiTexto(), text: tx("Carregando...") })
+    ' aviso (toast no topo)
+    m.avisoGr = uiNo(m.top, "Group", { visible: false })
+    m.avisoBg = vkNine(m.avisoGr, 510, 70, 900, 80, "f14")
+    m.avisoBg.blendColor = "0x000000C7"
+    m.aviso = vkTxtM(m.avisoGr, 538, 88, 844, 44, "", 30, true, cBranco(), 3, "center")
+    m.carregando = vkTxt(m.top, 0, 500, 1920, 80, tx("Carregando..."), 44, false, cBranco(), "center")
 
-    ' botão "Próximo episódio"
+    ' Próximo episódio (estilo Netflix) com contagem regressiva
     m.btProx = uiNo(m.top, "Group", { visible: false })
-    uiRet(m.btProx, 1380, 720, 460, 80, uiDestaque())
-    uiNo(m.btProx, "Label", { translation: [1380, 720], width: 460, height: 80, horizAlign: "center", vertAlign: "center", font: "font:MediumBoldSystemFont", color: "0xFFFFFFFF", text: tx("Próximo episódio  ▼") })
+    m.ppTemp = vkTxt(m.btProx, 1180, 600, 640, 34, "", 26, true, cNota(), "right")
+    m.ppConta = vkTxt(m.btProx, 1180, 636, 640, 40, "", 30, true, cBranco(), "right")
+    m.ppCx = vkCaixa(m.btProx, 1180, 686, 640, 112, 20, 4, 6)
+    vkPintar(m.ppCx, cBranco(), "0x141416EB", false)
+    m.ppFill = vkRet(m.btProx, 1184, 690, 1, 104, "0xB20710FF")
+    vkImg(m.btProx, 1214, 716, 52, 52, "i_proximo", cBranco())
+    vkTxt(m.btProx, 1288, 696, 520, 48, tx("Próximo episódio"), 36, true, cBranco(), "left")
+    m.ppTitulo = vkTxt(m.btProx, 1288, 742, 520, 34, "", 24, false, "0xFFFFFFD1", "left")
+    vkTxt(m.btProx, 1180, 806, 640, 30, tx("Aperte OK para assistir agora"), 22, false, "0xFFFFFFB3", "right")
 
     m.escondeBarra = uiNo(m.top, "Timer", { repeat: false, duration: 5 })
     m.escondeBarra.observeField("fire", "esconderBarra")
@@ -63,7 +76,6 @@ end sub
 
 sub retomar()
     m.top.setFocus(true)
-    m.menuAberto = false
 end sub
 
 sub encerrar()
@@ -86,7 +98,7 @@ function formatoDe(url as String) as String
 end function
 
 sub iniciarVideo(url as String, formato as String, titulo as String, posicao as Integer)
-    m.aviso.visible = false
+    m.avisoGr.visible = false
     m.carregando.visible = true
     cn = CreateObject("roSGNode", "ContentNode")
     cn.url = url
@@ -168,12 +180,10 @@ end sub
 ' ── Estado do vídeo ─────────────────────────────────────────────────
 sub aoEstado(ev as Object)
     est = ev.getData()
-    ' Alguns modelos de Roku passam o foco para o nó de vídeo quando a reprodução começa: devolve para o Player,
-    ' senão o OK, o Voltar e as setas deixam de chegar nas teclas abaixo.
-    if not m.menuAberto and not m.top.isInFocusChain() then m.top.setFocus(true)
+    if not m.top.isInFocusChain() then m.top.setFocus(true)
     if est = "playing" then
         m.carregando.visible = false
-        m.aviso.visible = false
+        m.avisoGr.visible = false
         m.tent = 0
         if m.tipo = "live" then m.tentouTs = false
     else if est = "buffering" then
@@ -204,7 +214,7 @@ sub falhou()
     end if
     if codigo = -3 or codigo = -5 then txt = "Sem conexão com o servidor. Confira a internet."
     m.aviso.text = tx(txt)
-    m.aviso.visible = true
+    m.avisoGr.visible = true
 end sub
 
 sub terminou()
@@ -249,15 +259,31 @@ sub tique()
     dur = m.video.duration
     posicao = m.video.position
     if m.barra.visible and m.tipo <> "live" and dur > 0 then
-        m.progresso.width = Int(1760 * posicao / dur)
-        m.tempos.text = hms(posicao) + " / " + hms(dur)
+        m.progresso.width = Int(1720 * posicao / dur)
+        if m.progresso.width < 1 then m.progresso.width = 1
+        m.tTempo.text = hms(posicao)
+        m.tDur.text = hms(dur)
     end if
-    ' botão do próximo episódio
+    if m.barra.visible then
+        if m.video.state = "paused" then m.tEstado.text = tx("Pausado") else m.tEstado.text = ""
+    end if
+    ' cartão do próximo episódio
     if m.tipo = "episodio" and m.fi + 1 < m.fila.Count() and dur > 0 then
         resta = dur - posicao
         limite = 45
         if m.credSeg > 0 then limite = m.credSeg
-        m.btProx.visible = (resta <= limite and posicao > 60)
+        mostrar = (resta <= limite and posicao > 60)
+        if mostrar then
+            prox = m.fila[m.fi + 1]
+            m.ppTitulo.text = sv(prox.titulo)
+            n = Int(resta) + 1
+            m.ppConta.text = tx("Próximo episódio em") + " " + Str(n).Trim() + "s"
+            frac = 1 - resta / limite
+            if frac < 0 then frac = 0
+            if frac > 1 then frac = 1
+            m.ppFill.width = Int(632 * frac) + 1
+        end if
+        m.btProx.visible = mostrar
     end if
 end sub
 
@@ -301,12 +327,12 @@ end sub
 
 function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     if not pressionou then return false
-    if m.menuAberto then return false
     if tecla = "back" then
-        ' Voltar: guarda onde parou, para o vídeo e fecha o player (sem depender de outra tela tratar a tecla).
-        salvar()
         m.video.control = "stop"
         sair()
+        return true
+    else if tecla = "OK" and m.btProx.visible then
+        proximo(true)
         return true
     else if tecla = "OK" or tecla = "play" then
         if m.tipo = "live" then
@@ -324,10 +350,10 @@ function onKeyEvent(tecla as String, pressionou as Boolean) as Boolean
     else if tecla = "right" then
         pular(10)
         return true
-    else if tecla = "rewind" or tecla = "rev" then
+    else if tecla = "rewind" then
         pular(-60)
         return true
-    else if tecla = "fastforward" or tecla = "fwd" then
+    else if tecla = "fastforward" then
         pular(60)
         return true
     else if tecla = "replay" then
@@ -363,7 +389,7 @@ sub trocarCanal(d as Integer)
     tocarCanal()
 end sub
 
-' ── Menu (áudio, legenda, próximo episódio) ──────────────────────────
+' ── Opções (áudio, legenda, próximo episódio) ────────────────────────
 sub abrirMenu()
     m.menuAcoes = []
     textos = []
@@ -381,39 +407,36 @@ sub abrirMenu()
         textos.Push(tx("Próximo episódio"))
         m.menuAcoes.Push("proximo")
     end if
-    textos.Push(tx("Fechar"))
-    m.menuAcoes.Push("fechar")
-    mostrarDialogo(tx("Opções"), textos, "aoMenu")
+    if textos.Count() = 0 then
+        m.aviso.text = tx("Sem faixas de áudio ou legenda neste vídeo.")
+        m.avisoGr.visible = true
+        m.escondeAviso = uiNo(m.top, "Timer", { repeat: false, duration: 2.5 })
+        m.escondeAviso.observeField("fire", "sumirAviso")
+        m.escondeAviso.control = "start"
+        return
+    end if
+    uiEscolher("Opções", textos, -1, aoMenu)
 end sub
 
-sub mostrarDialogo(titulo as String, textos as Object, cb as String)
-    d = CreateObject("roSGNode", "Dialog")
-    d.title = titulo
-    d.buttons = textos
-    d.observeFieldScoped("buttonSelected", cb)
-    d.observeFieldScoped("wasClosed", "aoDialogoFechado")
-    m.menuAberto = true
-    m.top.getScene().dialog = d
+sub sumirAviso()
+    m.avisoGr.visible = false
 end sub
 
-sub aoDialogoFechado(ev as Object)
-    m.menuAberto = false
-    m.top.setFocus(true)
-end sub
-
-sub aoMenu(ev as Object)
-    d = ev.getRoSGNode()
-    acao = m.menuAcoes[ev.getData()]
-    d.close = true
+sub aoMenu(i as Integer)
+    acao = m.menuAcoes[i]
     if acao = "audio" then
         m.trilhas = m.video.availableAudioTracks
         nomes = []
+        atual = 0
+        j = 0
         for each t in m.trilhas
             n = sv(t.Name)
             if n = "" then n = sv(t.Language)
             nomes.Push(n)
+            if sv(t.Track) = sv(m.video.audioTrack) then atual = j
+            j = j + 1
         end for
-        mostrarDialogo(tx("Áudio"), nomes, "aoEscolherAudio")
+        uiEscolher("Áudio", nomes, atual, aoEscolherAudio)
     else if acao = "legenda" then
         m.trilhas = m.video.availableSubtitleTracks
         nomes = [tx("Desligada")]
@@ -422,23 +445,17 @@ sub aoMenu(ev as Object)
             if n = "" then n = sv(t.Language)
             nomes.Push(n)
         end for
-        mostrarDialogo(tx("Legenda"), nomes, "aoEscolherLegenda")
+        uiEscolher("Legenda", nomes, 0, aoEscolherLegenda)
     else if acao = "proximo" then
         proximo(true)
     end if
 end sub
 
-sub aoEscolherAudio(ev as Object)
-    d = ev.getRoSGNode()
-    i = ev.getData()
-    d.close = true
+sub aoEscolherAudio(i as Integer)
     if i >= 0 and i < m.trilhas.Count() then m.video.audioTrack = sv(m.trilhas[i].Track)
 end sub
 
-sub aoEscolherLegenda(ev as Object)
-    d = ev.getRoSGNode()
-    i = ev.getData()
-    d.close = true
+sub aoEscolherLegenda(i as Integer)
     if i = 0 then
         m.video.globalCaptionMode = "Off"
     else if i - 1 < m.trilhas.Count() then

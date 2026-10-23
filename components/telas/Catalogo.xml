@@ -17,5 +17,6 @@
   <script type="text/brightscript" uri="pkg:/components/lib/Parental.brs" />
   <script type="text/brightscript" uri="pkg:/components/lib/Titulo.brs" />
   <script type="text/brightscript" uri="pkg:/components/lib/Ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/Vk.brs" />
   <script type="text/brightscript" uri="pkg:/components/telas/Catalogo.brs" />
 </component>

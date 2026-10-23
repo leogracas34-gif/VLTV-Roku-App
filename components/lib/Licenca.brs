@@ -43,7 +43,7 @@ function licChamar(metodo as String, caminho as String, corpo as Dynamic, token 
         texto = FormatJson(corpo)
     end if
     if token <> "" then cab["Authorization"] = "Bearer " + token
-    r = httpSync(sv(cfg().licenca) + caminho, metodo, texto, cab, 9000)
+    r = httpSync(sv(cfg().licenca) + caminho, metodo, texto, cab, 6000)
     j = invalid
     if r.texto <> "" then j = ParseJson(r.texto)
     if j = invalid or not isAA(j) then j = {}
@@ -135,29 +135,6 @@ function licInformarParceiro(codigo as String) as Boolean
     end if
     e = licVerificar()
     return e.estado <> "erro" and regGet("lic_parc_ok") = "1"
-end function
-
-' Reenvio em segundo plano (igual ao app da LG): se a TV nunca se apresentou à VPS, ou o aviso do código de parceiro
-' ficou pendente (VPS fora do ar, internet lenta), tenta de novo até 4 vezes, esperando um pouco mais a cada vez.
-' Chamada a cada abertura do app (AuthTask op "pendente"). Devolve true quando não há mais nada pendente.
-function licReenviarPendente() as Boolean
-    c = licCache()
-    semToken = true
-    if c <> invalid then
-        if sv(c.token) <> "" then semToken = false
-    end if
-    if not semToken and regGet("lic_parc_ok") <> "0" then return true
-    for tentativa = 1 to 4
-        licVerificar()
-        c = licCache()
-        semToken = true
-        if c <> invalid then
-            if sv(c.token) <> "" then semToken = false
-        end if
-        if not semToken and regGet("lic_parc_ok") <> "0" then return true
-        Sleep(3000 * tentativa)
-    end for
-    return false
 end function
 
 function liberaListaComum(lic as Dynamic) as Boolean

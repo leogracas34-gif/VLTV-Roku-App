@@ -5,7 +5,6 @@
 '   op "licenca":  confere a licença da TV -> { estado, codigo, dias, pagar_url, ... }
 '   op "informar": ctx { codigo } avisa a VPS qual lista de parceiro está em uso -> { ok }
 '   op "visual":   campanha e cores remotas (/lg/config)
-'   op "pendente": a cada abertura, garante que a TV se apresentou à VPS e reenvia avisos pendentes (com novas tentativas)
 sub init()
     m.top.functionName = "executar"
 end sub
@@ -26,8 +25,6 @@ sub executar()
         m.top.result = licVerificar()
     else if op = "informar" then
         m.top.result = { ok: licInformarParceiro(sv(ctx.codigo)) }
-    else if op = "pendente" then
-        m.top.result = { ok: licReenviarPendente() }
     else if op = "guarda" then
         m.top.result = guardaLicenca()
     else if op = "visual" then
